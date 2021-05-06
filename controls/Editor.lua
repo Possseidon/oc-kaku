@@ -88,8 +88,9 @@ end
 
 function Editor:invalidateLine(lineIndex)
   super.invalidate(self)
-  for i = lineIndex, #self._lineStates do
-    self._lineStates[i] = nil
+  local lineStates = self._lineStates
+  for i = lineIndex, #lineStates do
+    lineStates[i] = nil
   end
   local firstInvalidLine = self._firstInvalidLine
   if firstInvalidLine then
@@ -178,7 +179,7 @@ function Editor:setLine(lineIndex, text)
       lines[i] = ""
     end
   end
-  local oldText = lines[lineIndex]
+  local oldText = lines[lineIndex] or ""
   if oldText ~= text then
     lines[lineIndex] = text
     self:invalidateLine(lineIndex)
@@ -188,7 +189,7 @@ end
 function Editor:insertLine(lineIndex, text)
   assert(lineIndex >= 1, "line index must be at least one")
   local lines = self._lines
-  if lineIndex > #lines + 1 then
+  if lineIndex > #lines then
     self:setLine(lineIndex, text)
   else
     table.insert(lines, lineIndex, text)
