@@ -2,11 +2,11 @@ local class = require "class"
 local Event = require "Event"
 local unicode = require "unicode"
 
+local Canvas = require "kaku.Canvas"
 local Control = require "kaku.controls.Control"
 local highlight = require "kaku.controls.Editor.highlight"
 local Point = require "kaku.Point"
 local Rect = require "kaku.Rect"
-local unistr = require "kaku.utils.unistr"
 
 local Editor, super = class("Editor", Control)
 
@@ -46,48 +46,34 @@ function Editor.properties.bounds:get()
 end
 
 function Editor:draw(gpu, bounds, offset)
+  local canvas = Canvas(gpu, bounds, offset)
   local lines = self._lines
-  local scroll = self._scroll + offset
+  local scroll = self._scroll
   local tokenizer = self._tokenizer
   local style = self._style or { default = { 0xFFFFFF, 0x000000 } }
-  local pos, size = bounds:unpack()
-  local x, y = pos:unpack()
-  local w, h = size:unpack()
   local state = {}
   local defaultFg, defaultBg = highlight(style)
-  gpu.setForeground(defaultFg)
-  gpu.setBackground(defaultBg)
-  if scroll.x < 0 then
-    gpu.fill(x, y, -scroll.x, h, " ")
-  end
-  for displayLineIndex = 1, h do
-    local actualLineIndex = displayLineIndex + scroll.y
+  canvas:setColors(defaultFg, defaultBg)
+  canvas:fill(Rect(Point(1), Point(-scroll.x, math.huge)), " ")
+  for displayLineIndex = 1, bounds.size.y do
+    local actualLineIndex = displayLineIndex + offset.y + scroll.y
     local line = lines[actualLineIndex] or ""
+    local displayColumn = 1 - scroll.x
     if tokenizer then
-      local displayColumn = 1 - scroll.x
       for token, kind, subkind in tokenizer(line, state) do
         local tokenWidth = unicode.wlen(token)
         local displayColumnEnd = displayColumn + tokenWidth
-        if displayColumn <= w and displayColumnEnd >= 1 then
-          local leftExcess = math.max(1 - displayColumn, 0)
-          local rightExcess = math.max(displayColumnEnd - w, 0)
-          if leftExcess > 0 or rightExcess > 0 then
-            token = unistr.wsub(token, 1 + leftExcess, 1 + tokenWidth - rightExcess)
-          end
-          local fg, bg = highlight(style, token, kind, subkind)
-          gpu.setForeground(fg)
-          gpu.setBackground(bg)
-          gpu.set(x + displayColumn - 1 + leftExcess, y + displayLineIndex - 1, token)
-        end
+        canvas:setColors(highlight(style, token, kind, subkind))
+        canvas:set(Point(displayColumn, displayLineIndex + offset.y), token)
         displayColumn = displayColumnEnd
       end
       displayColumn = math.max(displayColumn, 1)
-      gpu.setForeground(defaultFg)
-      gpu.setBackground(defaultBg)
-      gpu.set(x + displayColumn - 1, y + displayLineIndex - 1, (" "):rep(w - displayColumn + 1))
     else
-      gpu.set(x, y + displayLineIndex - 1, line)
+      canvas:set(Point(displayColumn, displayLineIndex + offset.y), line)
+      displayColumn = displayColumn + unicode.wlen(line)
     end
+    canvas:setColors(defaultFg, defaultBg)
+    canvas:fill(Rect(Point(displayColumn, displayLineIndex + offset.y), Point(math.huge, 1)), " ")
   end
 end
 
