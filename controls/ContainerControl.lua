@@ -28,7 +28,7 @@ function ContainerControl:draw(gpu, bounds, offset)
   self:drawContainer(gpu, bounds, offset)
 
   for _, control in ipairs(self._controls) do
-    control:draw(gpu, control:clipWithOffset(bounds, offset))
+    control:forceDraw(gpu, control:clipWithOffset(bounds, offset))
   end
 
   self._changed = false

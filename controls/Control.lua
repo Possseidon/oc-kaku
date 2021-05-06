@@ -127,6 +127,7 @@ function Control:draw(gpu, bounds, offset)
 end
 
 function Control:forceDraw(gpu, bounds, offset)
+  self:invalidate()
   self:draw(gpu, bounds, offset)
   self._changed = false
 end

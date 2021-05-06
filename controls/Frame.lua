@@ -28,14 +28,16 @@ Frame:addEvent("onStyleChange")
 Frame:addProperty("style")
 
 function Frame:drawContainer(gpu, bounds, offset)
-  local canvas = Canvas(gpu, bounds, offset)
-  canvas:fill(Rect(Point(2), self._size - Point(2)), " ")
-
   local style = self._style
   if style then
+    local canvas = Canvas(gpu, bounds, offset)
+    canvas:fill(Rect(Point(2), self._size - Point(2)), " ")
+
     local box = Box(style)
     box:addBox(Rect(Point(1), self._size))
     box:draw(gpu, bounds, offset)
+  else
+    super.drawContainer(self, gpu, bounds, offset)
   end
 end
 
