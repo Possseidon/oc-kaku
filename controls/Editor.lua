@@ -173,14 +173,37 @@ end
 function Editor:setLine(lineIndex, text)
   assert(lineIndex >= 1, "line index must be at least one")
   local lines = self._lines
-  for i = #lines + 1, lineIndex - 1 do
-    lines[i] = ""
+  if text ~= "" then
+    for i = #lines + 1, lineIndex - 1 do
+      lines[i] = ""
+    end
   end
   local oldText = lines[lineIndex]
   if oldText ~= text then
     lines[lineIndex] = text
     self:invalidateLine(lineIndex)
   end
+end
+
+function Editor:insertLine(lineIndex, text)
+  assert(lineIndex >= 1, "line index must be at least one")
+  local lines = self._lines
+  if lineIndex > #lines + 1 then
+    self:setLine(lineIndex, text)
+  else
+    table.insert(lines, lineIndex, text)
+    self:invalidateLine(lineIndex)
+  end
+end
+
+function Editor:removeLine(lineIndex)
+  assert(lineIndex >= 1, "line index must be at least one")
+  local lines = self._lines
+  if lineIndex > #lines then
+    return
+  end
+  table.remove(self._lines, lineIndex)
+  self:invalidateLine(lineIndex)
 end
 
 function Editor:loadFromStream(stream)
