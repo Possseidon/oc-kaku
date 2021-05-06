@@ -18,12 +18,8 @@ local function lineState(self, lineIndex)
   end
 
   local lineStates = self._lineStates
-  local tokenizer = self._tokenizer
-  local tokenize = tokenizer.tokenize
-  local copyState = tokenizer.copyState
-
-  local firstLine = 0
   local state
+  local firstLine = 0
 
   for i = lineIndex, 1, -1 do
     state = lineStates[i]
@@ -32,6 +28,10 @@ local function lineState(self, lineIndex)
       break
     end
   end
+
+  local tokenizer = self._tokenizer
+  local copyState = tokenizer.copyState
+  local tokenize = tokenizer.tokenize
 
   state = state and copyState(state) or {}
 
