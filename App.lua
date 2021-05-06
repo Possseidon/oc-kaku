@@ -5,6 +5,7 @@ local Object = require "Object"
 local term = require "term"
 
 local Point = require "kaku.Point"
+local Rect = require "kaku.Rect"
 
 local App = class("App", Object)
 
@@ -94,6 +95,15 @@ function App:create()
   self.interruptible = true
 end
 
+App:addEvent("onInterrupted")
+App:addEvent("onKeyDown")
+App:addEvent("onKeyUp")
+App:addEvent("onClipboard")
+App:addEvent("onTouch")
+
+App:addEvent("onClearColorChange")
+App:addProperty("clearColor")
+
 function App:run()
   self._running = true
   repeat
@@ -136,18 +146,20 @@ end
 
 function App:draw()
   local gpu = term.gpu()
+  local bounds = Rect(Point(1), Point(gpu.getResolution()))
+  local offset = Point()
 
   local controls = self._controls
   if self._clearNext then
     gpu.setBackground(self._clearColor)
     term.clear()
     self._clearNext = false
-    for i = 1, #controls do
-      controls[i]:forceDraw(gpu, Point())
+    for _, control in ipairs(controls) do
+      control:forceDraw(gpu, control:clipWithOffset(bounds, offset))
     end
   else
-    for i = 1, #controls do
-      controls[i]:drawIfChanged(gpu, Point())
+    for _, control in ipairs(controls) do
+      control:drawIfChanged(gpu, control:clipWithOffset(bounds, offset))
     end
   end
 end
@@ -162,14 +174,5 @@ function App:findControl(pos)
     end
   end
 end
-
-App:addEvent("onInterrupted")
-App:addEvent("onKeyDown")
-App:addEvent("onKeyUp")
-App:addEvent("onClipboard")
-App:addEvent("onTouch")
-
-App:addEvent("onClearColorChange")
-App:addProperty("clearColor")
 
 return App

@@ -1,8 +1,10 @@
 local class = require "class"
-local component = require "component"
 local Object = require "Object"
 
 local boxchars = require "kaku.resources.boxchars"
+local Canvas = require "kaku.Canvas"
+local Point = require "kaku.Point"
+local Rect = require "kaku.Rect"
 
 local Box = class("Box", Object)
 
@@ -87,13 +89,8 @@ function Box:addBox(bounds, style)
   self:addVertical(x2, y1, y2, style)
 end
 
-function Box:draw(pos, gpu)
-  local dx, dy = 0, 0
-  if pos then
-    dx, dy = pos:unpack()
-    dx, dy = dx - 1, dy - 1
-  end
-  gpu = gpu or component.gpu
+function Box:draw(gpu, bounds, offset)
+  local canvas = Canvas(gpu, bounds, offset)
   local drawn = {}
   local pixels = self._pixels
   for index, pixel in pairs(pixels) do
@@ -131,17 +128,17 @@ function Box:draw(pos, gpu)
         y2 = y2 + 1
       end
       if x2 - x1 > y2 - y1 then
-        gpu.fill(dx + x1, dy + y, x2 - x1 + 1, 1, char)
+        canvas:fill(Rect(Point(x1,  y), Point(x2 - x1 + 1, 1)), char)
         for ix = x1, x2 do
           drawn[coordsToIndex(ix, y)] = true
         end
       elseif y2 - y1 ~= 0 then
-        gpu.fill(dx + x, dy + y1, 1, y2 - y1 + 1, char)
+        canvas:fill(Rect(Point(x, y1), Point(1, y2 - y1 + 1)), char)
         for iy = y1, y2 do
           drawn[coordsToIndex(x, iy)] = true
         end
       else
-        gpu.set(dx + x, dy + y, char)
+        canvas:set(Point(x, y), char)
         drawn[index] = true
       end
     end

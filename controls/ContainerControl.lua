@@ -1,5 +1,6 @@
 local class = require "class"
 
+local Canvas = require "kaku.Canvas"
 local Control = require "kaku.controls.Control"
 local Point = require "kaku.Point"
 local Rect = require "kaku.Rect"
@@ -18,50 +19,40 @@ function ContainerControl.properties.bounds:get()
   return Rect(self._pos, self._size)
 end
 
-function ContainerControl:drawContainer(gpu, offset)
-  -- nothing
+function ContainerControl:drawContainer(gpu, bounds, offset)
+  local canvas = Canvas(gpu, bounds)
+  canvas:clear()
 end
 
-function ContainerControl:draw(gpu, offset)
-  local pos, size = self.bounds:unpack()
-  local x, y = (pos + offset):unpack()
-  local w, h = size:unpack()
-  gpu.fill(x, y, w, h, " ")
+function ContainerControl:draw(gpu, bounds, offset)
+  self:drawContainer(gpu, bounds, offset)
 
-  self:drawContainer(gpu, offset)
-
-  local controls = self._controls
-  local totalOffset = offset + self._pos - Point(1)
-  for i = 1, #controls do
-    controls[i]:draw(gpu, totalOffset)
+  for _, control in ipairs(self._controls) do
+    control:draw(gpu, control:clipWithOffset(bounds, offset))
   end
 
   self._changed = false
 end
 
-function ContainerControl:drawIfChanged(gpu, offset)
-  local totalOffset = offset + self._pos - Point(1)
-  local controls = self._controls
+function ContainerControl:drawIfChanged(gpu, bounds, offset)
   if self._changed then
-    self:draw(gpu, offset)
+    self:draw(gpu, bounds, offset)
   else
-    for i = 1, #controls do
-      controls[i]:drawIfChanged(gpu, totalOffset)
+    for _, control in ipairs(self._controls) do
+      control:drawIfChanged(gpu, control:clipWithOffset(bounds, offset))
     end
   end
 end
 
 function ContainerControl:findControl(pos)
-  local controls = self._controls
   local offsetPos = pos - self._pos + Point(1)
-  for i = 1, #controls do
-    local child = controls[i]
-    if child.bounds:contains(offsetPos) then
-      local childOfChild = child:findControl(offsetPos)
-      if childOfChild then
-        return childOfChild
+  for _, control in ipairs(self._controls) do
+    if control.bounds:contains(offsetPos) then
+      local child = control:findControl(offsetPos)
+      if child then
+        return child
       end
-      return child
+      return control
     end
   end
   return self

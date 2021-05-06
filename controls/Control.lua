@@ -46,7 +46,7 @@ function Control:remove()
   for i = 1, #controls do
     local control = controls[i]
     if control == self then
-      table.remove(controls, self)
+      table.remove(controls, i)
       return
     end
   end
@@ -116,18 +116,24 @@ function Control:invalidateParent()
   self.parent:invalidate()
 end
 
-function Control:draw(gpu, offset)
+function Control:clipWithOffset(parentBounds, offset)
+  local bounds = self.bounds + parentBounds.pos - Point(1)
+  local clippedBounds = parentBounds:clip(bounds - offset)
+  return clippedBounds, offset - bounds.pos + clippedBounds.pos
+end
+
+function Control:draw(gpu, bounds, offset)
   self:abstract()
 end
 
-function Control:forceDraw(gpu, offset)
-  self:draw(gpu, offset)
+function Control:forceDraw(gpu, bounds, offset)
+  self:draw(gpu, bounds, offset)
   self._changed = false
 end
 
-function Control:drawIfChanged(gpu, offset)
+function Control:drawIfChanged(gpu, bounds, offset)
   if self._changed then
-    self:forceDraw(gpu, offset)
+    self:forceDraw(gpu, bounds, offset)
   end
 end
 

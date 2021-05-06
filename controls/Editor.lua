@@ -45,13 +45,14 @@ function Editor.properties.bounds:get()
   return Rect(self._pos, self._size)
 end
 
-function Editor:draw(gpu, offset)
+function Editor:draw(gpu, bounds, offset)
   local lines = self._lines
-  local scroll = self._scroll
+  local scroll = self._scroll + offset
   local tokenizer = self._tokenizer
   local style = self._style or { default = { 0xFFFFFF, 0x000000 } }
-  local x, y = (self._pos + offset):unpack()
-  local w, h = self._size:unpack()
+  local pos, size = bounds:unpack()
+  local x, y = pos:unpack()
+  local w, h = size:unpack()
   local state = {}
   local defaultFg, defaultBg = highlight(style)
   gpu.setForeground(defaultFg)
