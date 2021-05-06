@@ -21,6 +21,14 @@ local tokens = {
   whitespace = true;
 }
 
+local function copyState(state)
+  local result = {}
+  for k, v in pairs(state) do
+    result[k] = v
+  end
+  return result
+end
+
 local function tokenize(code, state)
   local keywords = {
     ["and"] = "operator",
@@ -225,5 +233,6 @@ end
 
 return {
   tokenize = tokenize,
-  tokens = tokens
+  tokens = tokens,
+  copyState = copyState
 }
