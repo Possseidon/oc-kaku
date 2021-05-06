@@ -75,4 +75,12 @@ function Point:unpack()
   return self._x, self._y
 end
 
+function Point:max(other)
+  return Point(math.max(self.x, other.x), math.max(self.y, other.y))
+end
+
+function Point:min(other)
+  return Point(math.min(self.x, other.x), math.min(self.y, other.y))
+end
+
 return Point
