@@ -24,7 +24,7 @@ function Editor:create(parent)
   self._onStyleChange = Event()
 
   self._onSizeChange = self.invalidateParent
-  self._onScrollChange = self.invalidate
+  self._onScrollChange = self.invalidateScroll
   self._onTokenizerChange = self.invalidate
   self._onStyleChange = self.invalidate
 end
@@ -45,17 +45,45 @@ function Editor.properties.bounds:get()
   return Rect(self._pos, self._size)
 end
 
+function Editor:invalidateScroll()
+  super.invalidate(self)
+end
+
+function Editor:invalidate()
+  super.invalidate(self)
+  self._lastScroll = nil
+end
+
 function Editor:draw(gpu, bounds, offset)
   local canvas = Canvas(gpu, bounds, offset)
-  local lines = self._lines
   local scroll = self._scroll
+
+  local firstLine, lastLine = 1, bounds.size.y
+
+  if self._lastScroll then
+    local scrollChange = scroll - self._lastScroll
+    if scrollChange.x == 0 then
+      if scrollChange.y == 0 then
+        return
+      end
+      canvas:copy(Rect(Point(1), self._size), Point(1) - scrollChange)
+      if scrollChange.y > 0 then
+        firstLine = lastLine - scrollChange.y + 1
+      else
+        lastLine = firstLine - scrollChange.y - 1
+      end
+    end
+  end
+  self._lastScroll = scroll
+
+  local lines = self._lines
   local tokenizer = self._tokenizer
   local style = self._style or { default = { 0xFFFFFF, 0x000000 } }
   local state = {}
   local defaultFg, defaultBg = highlight(style)
   canvas:setColors(defaultFg, defaultBg)
   canvas:fill(Rect(Point(1), Point(-scroll.x, math.huge)), " ")
-  for displayLineIndex = 1, bounds.size.y do
+  for displayLineIndex = firstLine, lastLine do
     local actualLineIndex = displayLineIndex + offset.y + scroll.y
     local line = lines[actualLineIndex] or ""
     local displayColumn = 1 - scroll.x
