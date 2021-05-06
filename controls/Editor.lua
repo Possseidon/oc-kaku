@@ -10,11 +10,47 @@ local Rect = require "kaku.Rect"
 
 local Editor, super = class("Editor", Control)
 
+local function lineState(self, lineIndex)
+  local lines = self._lines
+
+  if not lines[lineIndex] then
+    return nil
+  end
+
+  local lineStates = self._lineStates
+  local tokenizer = self._tokenizer
+  local tokenize = tokenizer.tokenize
+  local copyState = tokenizer.copyState
+
+  local firstLine = 0
+  local state
+
+  for i = lineIndex, 1, -1 do
+    state = lineStates[i]
+    if state then
+      firstLine = i
+      break
+    end
+  end
+
+  state = state and copyState(state) or {}
+
+  for i = firstLine + 1, lineIndex do
+    for _ in tokenize(lines[i], state) do
+      -- nothing
+    end
+    lineStates[i] = copyState(state)
+  end
+
+  return state
+end
+
 function Editor:create(parent)
   super.create(self, parent)
   self._size = Point(30, 10)
   self._scroll = Point()
   self._lines = {}
+  self._lineStates = {}
   self._tokenizer = nil
   self._style = nil
 
@@ -47,11 +83,26 @@ end
 
 function Editor:invalidateScroll()
   super.invalidate(self)
+  self._firstInvalidLine = nil
+end
+
+function Editor:invalidateLine(lineIndex)
+  super.invalidate(self)
+  for i = lineIndex, #self._lineStates do
+    self._lineStates[i] = nil
+  end
+  local firstInvalidLine = self._firstInvalidLine
+  if firstInvalidLine then
+    self._firstInvalidLine = math.min(firstInvalidLine, lineIndex)
+  end
+  self._lastScroll = nil
 end
 
 function Editor:invalidate()
   super.invalidate(self)
   self._lastScroll = nil
+  self._firstInvalidLine = nil
+  self._lineStates = {}
 end
 
 function Editor:draw(gpu, bounds, offset)
@@ -76,10 +127,13 @@ function Editor:draw(gpu, bounds, offset)
   end
   self._lastScroll = scroll
 
+  if self._firstInvalidLine then
+    firstLine = math.max(firstLine, self._firstInvalidLine - offset.y - scroll.y)
+  end
+
   local lines = self._lines
-  local tokenizer = self._tokenizer
+  local tokenize = self._tokenizer.tokenize
   local style = self._style or { default = { 0xFFFFFF, 0x000000 } }
-  local state = {}
   local defaultFg, defaultBg = highlight(style)
   canvas:setColors(defaultFg, defaultBg)
   canvas:fill(Rect(Point(1), Point(-scroll.x, math.huge)), " ")
@@ -87,8 +141,8 @@ function Editor:draw(gpu, bounds, offset)
     local actualLineIndex = displayLineIndex + offset.y + scroll.y
     local line = lines[actualLineIndex] or ""
     local displayColumn = 1 - scroll.x
-    if tokenizer then
-      for token, kind, subkind in tokenizer(line, state) do
+    if tokenize then
+      for token, kind, subkind in tokenize(line, lineState(self, actualLineIndex - 1)) do
         local tokenWidth = unicode.wlen(token)
         local displayColumnEnd = displayColumn + tokenWidth
         canvas:setColors(highlight(style, token, kind, subkind))
@@ -103,6 +157,30 @@ function Editor:draw(gpu, bounds, offset)
     canvas:setColors(defaultFg, defaultBg)
     canvas:fill(Rect(Point(displayColumn, displayLineIndex + offset.y), Point(math.huge, 1)), " ")
   end
+
+  self._firstInvalidLine = math.huge
+end
+
+function Editor:lineCount()
+  return #self._lines
+end
+
+function Editor:getLine(lineIndex)
+  assert(lineIndex >= 1, "line index must be at least one")
+  return self._lines[lineIndex] or ""
+end
+
+function Editor:setLine(lineIndex, text)
+  assert(lineIndex >= 1, "line index must be at least one")
+  local lines = self._lines
+  for i = #lines + 1, lineIndex - 1 do
+    lines[i] = ""
+  end
+  local oldText = lines[lineIndex]
+  if oldText ~= text then
+    lines[lineIndex] = text
+    self:invalidateLine(lineIndex)
+  end
 end
 
 function Editor:loadFromStream(stream)
@@ -111,6 +189,7 @@ function Editor:loadFromStream(stream)
     table.insert(lines, line)
   end
   self._lines = lines
+  self._lineStates = {}
   self:invalidate()
 end
 
