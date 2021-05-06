@@ -4,11 +4,11 @@ local unicode = require "unicode"
 
 local Canvas = require "kaku.Canvas"
 local Control = require "kaku.controls.Control"
-local highlight = require "kaku.controls.Editor.highlight"
+local highlight = require "kaku.controls.CodeViewer.highlight"
 local Point = require "kaku.Point"
 local Rect = require "kaku.Rect"
 
-local Editor, super = class("Editor", Control)
+local CodeViewer, super = class("CodeViewer", Control)
 
 local function lineState(self, lineIndex)
   local lines = self._lines
@@ -45,7 +45,7 @@ local function lineState(self, lineIndex)
   return state
 end
 
-function Editor:create(parent)
+function CodeViewer:create(parent)
   super.create(self, parent)
   self._size = Point(30, 10)
   self._scroll = Point()
@@ -65,28 +65,28 @@ function Editor:create(parent)
   self._onStyleChange = self.invalidate
 end
 
-Editor:addEvent("onSizeChange")
-Editor:addProperty("size")
+CodeViewer:addEvent("onSizeChange")
+CodeViewer:addProperty("size")
 
-Editor:addEvent("onScrollChange")
-Editor:addProperty("scroll")
+CodeViewer:addEvent("onScrollChange")
+CodeViewer:addProperty("scroll")
 
-Editor:addEvent("onTokenizerChange")
-Editor:addProperty("tokenizer")
+CodeViewer:addEvent("onTokenizerChange")
+CodeViewer:addProperty("tokenizer")
 
-Editor:addEvent("onStyleChange")
-Editor:addProperty("style")
+CodeViewer:addEvent("onStyleChange")
+CodeViewer:addProperty("style")
 
-function Editor.properties.bounds:get()
+function CodeViewer.properties.bounds:get()
   return Rect(self._pos, self._size)
 end
 
-function Editor:invalidateScroll()
+function CodeViewer:invalidateScroll()
   super.invalidate(self)
   self._firstInvalidLine = nil
 end
 
-function Editor:invalidateLine(lineIndex)
+function CodeViewer:invalidateLine(lineIndex)
   super.invalidate(self)
   local lineStates = self._lineStates
   for i = lineIndex, #lineStates do
@@ -99,14 +99,14 @@ function Editor:invalidateLine(lineIndex)
   self._lastScroll = nil
 end
 
-function Editor:invalidate()
+function CodeViewer:invalidate()
   super.invalidate(self)
   self._lastScroll = nil
   self._firstInvalidLine = nil
   self._lineStates = {}
 end
 
-function Editor:draw(gpu, bounds, offset)
+function CodeViewer:draw(gpu, bounds, offset)
   local canvas = Canvas(gpu, bounds, offset)
   local scroll = self._scroll
 
@@ -162,16 +162,16 @@ function Editor:draw(gpu, bounds, offset)
   self._firstInvalidLine = math.huge
 end
 
-function Editor:lineCount()
+function CodeViewer:lineCount()
   return #self._lines
 end
 
-function Editor:getLine(lineIndex)
+function CodeViewer:getLine(lineIndex)
   assert(lineIndex >= 1, "line index must be at least one")
   return self._lines[lineIndex] or ""
 end
 
-function Editor:setLine(lineIndex, text)
+function CodeViewer:setLine(lineIndex, text)
   assert(lineIndex >= 1, "line index must be at least one")
   local lines = self._lines
   if text ~= "" then
@@ -186,7 +186,7 @@ function Editor:setLine(lineIndex, text)
   end
 end
 
-function Editor:insertLine(lineIndex, text)
+function CodeViewer:insertLine(lineIndex, text)
   assert(lineIndex >= 1, "line index must be at least one")
   local lines = self._lines
   if lineIndex > #lines then
@@ -197,7 +197,7 @@ function Editor:insertLine(lineIndex, text)
   end
 end
 
-function Editor:removeLine(lineIndex)
+function CodeViewer:removeLine(lineIndex)
   assert(lineIndex >= 1, "line index must be at least one")
   local lines = self._lines
   if lineIndex > #lines then
@@ -207,7 +207,7 @@ function Editor:removeLine(lineIndex)
   self:invalidateLine(lineIndex)
 end
 
-function Editor:loadFromStream(stream)
+function CodeViewer:loadFromStream(stream)
   local lines = {}
   for line in stream:lines("l") do
     table.insert(lines, line)
@@ -217,10 +217,10 @@ function Editor:loadFromStream(stream)
   self:invalidate()
 end
 
-function Editor:saveToStream(stream)
+function CodeViewer:saveToStream(stream)
   for _, line in ipairs(self._lines) do
     stream:write(line, "\n")
   end
 end
 
-return Editor
+return CodeViewer
