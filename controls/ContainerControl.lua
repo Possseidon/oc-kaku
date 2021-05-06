@@ -3,25 +3,16 @@ local class = require "class"
 local Canvas = require "kaku.Canvas"
 local Control = require "kaku.controls.Control"
 local Point = require "kaku.Point"
-local Rect = require "kaku.Rect"
 
 local ContainerControl, super = class("ContainerControl", Control)
 
 function ContainerControl:create(parent)
   super.create(self, parent)
   self._controls = {}
-  self._size = Point(12)
-end
-
-ContainerControl:addReadonly("size")
-
-function ContainerControl.properties.bounds:get()
-  return Rect(self._pos, self._size)
 end
 
 function ContainerControl:drawContainer(gpu, bounds, offset)
-  local canvas = Canvas(gpu, bounds)
-  canvas:clear()
+  Canvas(gpu, bounds):clear()
 end
 
 function ContainerControl:draw(gpu, bounds, offset)

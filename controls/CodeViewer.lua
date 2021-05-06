@@ -3,12 +3,12 @@ local Event = require "Event"
 local unicode = require "unicode"
 
 local Canvas = require "kaku.Canvas"
-local Control = require "kaku.controls.Control"
+local SizeControl = require "kaku.controls.SizeControl"
 local highlight = require "kaku.controls.CodeViewer.highlight"
 local Point = require "kaku.Point"
 local Rect = require "kaku.Rect"
 
-local CodeViewer, super = class("CodeViewer", Control)
+local CodeViewer, super = class("CodeViewer", SizeControl)
 
 local function lineState(self, lineIndex)
   local lines = self._lines
@@ -47,26 +47,20 @@ end
 
 function CodeViewer:create(parent)
   super.create(self, parent)
-  self._size = Point(30, 10)
   self._scroll = Point()
   self._lines = {}
   self._lineStates = {}
   self._tokenizer = nil
   self._style = nil
 
-  self._onSizeChange = Event()
   self._onScrollChange = Event()
   self._onTokenizerChange = Event()
   self._onStyleChange = Event()
 
-  self._onSizeChange = self.invalidateParent
   self._onScrollChange = self.invalidateScroll
   self._onTokenizerChange = self.invalidate
   self._onStyleChange = self.invalidate
 end
-
-CodeViewer:addEvent("onSizeChange")
-CodeViewer:addProperty("size")
 
 CodeViewer:addEvent("onScrollChange")
 CodeViewer:addProperty("scroll")
@@ -76,10 +70,6 @@ CodeViewer:addProperty("tokenizer")
 
 CodeViewer:addEvent("onStyleChange")
 CodeViewer:addProperty("style")
-
-function CodeViewer.properties.bounds:get()
-  return Rect(self._pos, self._size)
-end
 
 function CodeViewer:invalidateScroll()
   super.invalidate(self)
@@ -118,7 +108,7 @@ function CodeViewer:draw(gpu, bounds, offset)
       if scrollChange.y == 0 then
         return
       end
-      canvas:copy(Rect(Point(1), self._size), Point(1) - scrollChange)
+      canvas:copy(Rect(Point(1), self.size), Point(1) - scrollChange)
       if scrollChange.y > 0 then
         firstLine = lastLine - scrollChange.y + 1
       else
