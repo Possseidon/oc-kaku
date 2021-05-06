@@ -217,4 +217,10 @@ function Editor:loadFromStream(stream)
   self:invalidate()
 end
 
+function Editor:saveToStream(stream)
+  for _, line in ipairs(self._lines) do
+    stream:write(line, "\n")
+  end
+end
+
 return Editor
