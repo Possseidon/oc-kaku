@@ -1,6 +1,6 @@
 local function fg(style)
   local default = style.default
-  return (assert(default and default[1], "style does not have a forgeground color"))
+  return (assert(default and default[1], "style does not have a foreground color"))
 end
 
 local function bg(style)
