@@ -134,7 +134,8 @@ end
 
 function Control:drawIfChanged(gpu, bounds, offset)
   if self._changed then
-    self:forceDraw(gpu, bounds, offset)
+    self:draw(gpu, bounds, offset)
+    self._changed = false
   end
 end
 
