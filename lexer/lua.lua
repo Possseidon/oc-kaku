@@ -21,12 +21,25 @@ local tokens = {
   whitespace = true;
 }
 
-local function copyState(state)
-  local result = {}
-  for k, v in pairs(state) do
-    result[k] = v
+local newState
+
+local stateMetatable = {
+  __index = {
+    copy = function(state)
+      local result = newState()
+      for k, v in pairs(state) do
+        result[k] = v
+      end
+      return result
+    end
+  },
+  __eq = function(lhs, rhs)
+    return lhs.kind == rhs.kind and lhs.level == rhs.level and lhs.quote == rhs.quote
   end
-  return result
+}
+
+function newState()
+  return setmetatable({}, stateMetatable)
 end
 
 local function tokenize(code, state)
@@ -234,5 +247,5 @@ end
 return {
   tokenize = tokenize,
   tokens = tokens,
-  copyState = copyState
+  newState = newState
 }
