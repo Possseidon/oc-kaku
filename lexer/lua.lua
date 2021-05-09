@@ -149,6 +149,7 @@ local function tokenize(code, state)
         yield(content, "string", "content")
       else
         local escape = code:match("^\\%d%d?%d?", pos) or
+          code:match("^\\x%x%x", pos) or
           code:match("^\\u{%x+}", pos) or
           code:match("^\\\r\n", pos) or
           code:match("^\\.?", pos)
