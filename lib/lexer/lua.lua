@@ -42,7 +42,7 @@ function newState()
   return setmetatable({}, stateMetatable)
 end
 
-local function tokenize(code, state)
+local function tokenize(code, state, line)
   local keywords = {
     ["and"] = "operator",
     ["break"] = "flow",
@@ -136,6 +136,15 @@ local function tokenize(code, state)
     end
   end
 
+  -- allowed only as the first character in a chunk
+  local function processHashComment()
+    yield("#", "comment")
+    local content = code:match("^[^\r\n]+", pos)
+    if content then
+      yield(content, "comment", "content")
+    end
+  end
+
   local function processMultilineString(quote)
     processMultiline("string", quote)
   end
@@ -215,6 +224,11 @@ local function tokenize(code, state)
 
   state = state or {}
 
+  local firstToken = line == 1
+  if firstToken then
+    table.insert(processors, 1, {"^#", processHashComment})
+  end
+
   return coroutine.wrap(function()
     local len = #code
     while pos <= len do
@@ -240,6 +254,11 @@ local function tokenize(code, state)
             break
           end
         end
+      end
+
+      if firstToken then
+        table.remove(processors, 1)
+        firstToken = false
       end
     end
   end)

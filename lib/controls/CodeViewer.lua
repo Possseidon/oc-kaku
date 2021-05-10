@@ -35,7 +35,7 @@ local function lineState(self, lineIndex)
   state = state and state:copy() or tokenizer.newState()
 
   for i = firstLine + 1, lineIndex do
-    for _ in tokenize(lines[i], state) do
+    for _ in tokenize(lines[i], state, i) do
       -- nothing
     end
     lineStates[i] = state:copy()
@@ -159,7 +159,7 @@ function CodeViewer:draw(gpu, bounds, offset)
       if state then
         state = state:copy()
       end
-      for token, kind, subkind in tokenize(line, state) do
+      for token, kind, subkind in tokenize(line, state, actualLineIndex) do
         local tokenWidth = unicode.wlen(token)
         local displayColumnEnd = displayColumn + tokenWidth
         canvas:setColors(highlight(style, token, kind, subkind))
