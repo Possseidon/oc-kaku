@@ -102,6 +102,10 @@ function CodeViewer:invalidate()
   self._lineStates = {}
 end
 
+function CodeViewer:customizeToken(token, kind, subkind, fg, bg, pos)
+  return token, fg, bg
+end
+
 function CodeViewer:draw(gpu, bounds, offset)
   local canvas = Canvas(gpu, bounds, offset)
   local scroll = self._scroll
@@ -142,39 +146,58 @@ function CodeViewer:draw(gpu, bounds, offset)
   end
 
   local lines = self._lines
-  local tokenize = self._tokenizer.tokenize
+  local tokenizer = self._tokenizer
+  local tokenize = tokenizer and tokenizer.tokenize
+  local customizeToken = self.customizeToken
   local style = self._style or { default = { 0xFFFFFF, 0x000000 } }
-  local defaultFg, defaultBg = highlight(style)
-  canvas:setColors(defaultFg, defaultBg)
   if leftChanged then
+    local leftFg, leftBg = highlight(style, " ", "whitespace", "left")
+    canvas:setColors(leftFg, leftBg)
     canvas:fill(Rect(Point(1), Point(-scroll.x, math.huge)), " ")
   end
+
   for displayLineIndex = firstLine, lastLine do
     local actualLineIndex = displayLineIndex + offset.y + scroll.y
     local line = lines[actualLineIndex] or ""
     local displayColumn = 1 - scroll.x
     local state, oldState
+
+    local function drawTokens(displayToken, fg, bg, ...)
+      if not displayToken then
+        return
+      end
+
+      local tokenWidth = unicode.wlen(displayToken)
+      local displayColumnEnd = displayColumn + tokenWidth
+      canvas:setColors(fg, bg)
+      canvas:set(Point(displayColumn, displayLineIndex + offset.y), displayToken)
+      displayColumn = displayColumnEnd
+
+      return drawTokens(...)
+    end
+
     if tokenize then
       state = lineState(self, actualLineIndex - 1)
       if state then
         state = state:copy()
       end
       for token, kind, subkind in tokenize(line, state, actualLineIndex) do
-        local tokenWidth = unicode.wlen(token)
-        local displayColumnEnd = displayColumn + tokenWidth
-        canvas:setColors(highlight(style, token, kind, subkind))
-        canvas:set(Point(displayColumn, displayLineIndex + offset.y), token)
-        displayColumn = displayColumnEnd
+        local fg, bg = highlight(style, token, kind, subkind)
+        local pos = Point(displayColumn + scroll.x, actualLineIndex)
+        drawTokens(customizeToken(self, token, kind, subkind, fg, bg, pos))
       end
       displayColumn = math.max(displayColumn, 1)
       oldState = lineStates[actualLineIndex]
       lineStates[actualLineIndex] = state
     else
-      canvas:set(Point(displayColumn, displayLineIndex + offset.y), line)
-      displayColumn = displayColumn + unicode.wlen(line)
+      local fg, bg = highlight(style)
+      local pos = Point(displayColumn + scroll.x, actualLineIndex)
+      drawTokens(customizeToken(self, line, nil, nil, fg, bg, pos))
     end
-    canvas:setColors(defaultFg, defaultBg)
-    canvas:fill(Rect(Point(displayColumn, displayLineIndex + offset.y), Point(math.huge, 1)), " ")
+    local pad = (" "):rep(bounds.size.x - displayColumn + offset.x + 1)
+    local padPos = Point(displayColumn + scroll.x, actualLineIndex)
+    local fg, bg = highlight(style, pad, "whitespace", "eol")
+    drawTokens(customizeToken(self, pad, "whitespace", "eol", fg, bg, padPos))
 
     if not multipleLinesChanged and (not state or oldState == state) then
       break
