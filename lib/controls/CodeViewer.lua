@@ -219,6 +219,34 @@ function CodeViewer:getLine(lineIndex)
   return self._lines[lineIndex] or ""
 end
 
+function CodeViewer:getChar(pos)
+  local line = self:getLine(pos.y)
+  line = unistr.wsub(line, pos.x)
+  local char = unicode.sub(line, 1, 1)
+  return char ~= "" and char or " "
+end
+
+function CodeViewer:normalizeColumn(pos)
+  if pos.x == 1 then
+    return 1
+  end
+  local char = self:getChar(Point(pos.x - 1, pos.y))
+  return pos.x - unicode.charWidth(char) + 1
+end
+
+function CodeViewer:nextColumn(pos)
+  local char = self:getChar(pos)
+  return pos.x + unicode.charWidth(char)
+end
+
+function CodeViewer:previousColumn(pos)
+  if pos.x == 1 then
+    return 1
+  end
+  local char = self:getChar(Point(pos.x - 2, pos.y))
+  return pos.x - unicode.charWidth(char)
+end
+
 local function splitLines(text)
   return text:gmatch("[^\n]*")
 end
