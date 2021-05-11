@@ -7,6 +7,7 @@ local highlight = require "kaku.controls.CodeViewer.highlight"
 local Point = require "kaku.Point"
 local Rect = require "kaku.Rect"
 local SizeControl = require "kaku.controls.SizeControl"
+local unistr = require "kaku.utils.unistr"
 
 local CodeViewer, super = class("CodeViewer", SizeControl)
 
@@ -215,7 +216,7 @@ end
 
 function CodeViewer:getLine(lineIndex)
   assert(lineIndex >= 1, "line index must be at least one")
-  return self._lines[lineIndex]
+  return self._lines[lineIndex] or ""
 end
 
 local function splitLines(text)
@@ -277,6 +278,27 @@ function CodeViewer:removeLine(lineIndex, lastLineIndex)
   if lastLineIndex >= lineIndex then
     self:invalidateLine(lineIndex, true)
   end
+end
+
+function CodeViewer:insertText(pos, text)
+  local line = self:getLine(pos.y)
+  local pad = pos.x - unicode.wlen(line) - 1
+  if pad > 0 then
+    line = unistr.wsub(line, 1, pos.x - 1) .. (" "):rep(pad) .. text
+  else
+    line = unistr.wsub(line, 1, pos.x - 1) .. text .. unistr.wsub(line, pos.x)
+  end
+  self:setLine(pos.y, line)
+  -- TODO: return the end position
+end
+
+function CodeViewer:makePosVisible(pos)
+  local sx, sy = self._scroll:unpack()
+  local px, py = pos:unpack()
+  local w, h = self._size:unpack()
+  sx = math.min(math.max(sx, px - w), px - 1)
+  sy = math.min(math.max(sy, py - h), py - 1)
+  self.scroll = Point(sx, sy)
 end
 
 function CodeViewer:clear()
